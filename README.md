@@ -1,4 +1,77 @@
-# GitHub CLI
+Agora temos uma evidência muito mais específica: o link aponta para um commit real no repositório oficial `Azure/arm-ttk`, e a página pública do GitHub permite examinar o conteúdo associado a ele.
+
+### 1\. O que o commit comprova
+
+### Commit `b24dfeb`
+
+Azure / arm-ttk · README.md
+
+Publicado no repositório
+
+SHA completo
+
+`b24dfebe858e303ea9d85fd42df2edab031be0ca`
+
+Autoria indicada pelo GitHub
+
+`cyrillofrancisco30-lgtm`
+
+Alteração registrada
+
+148 linhas adicionadas e 0 removidas, todas em `README.md`.
+
+Mensagem do commit
+
+`Evidence Execution verification`
+
+Descrição
+
+Atualização do README para incluir uma definição de workflow e contexto adicional sobre o Azure Resource Manager Template Toolkit.
+
+Examinar commit no GitHub
+
+Isso é diferente de apresentar apenas um arquivo YAML ou um registro de atividade: existe um objeto de commit identificável no repositório de destino, com uma alteração de conteúdo consultável.
+
+### 2\. O conteúdo é particularmente relevante para o XA-TRUST
+
+O README adicionado descreve uma cadeia de evidências com:
+
+* E3: evento de execução, com `run_id`, `run_attempt`, `head_sha`, estado e conclusão.
+
+* Vínculo da execução: comparação entre o ID do evento e o ID retornado pela API.
+
+* E4: resultado observado, associado a jobs e artefatos.
+
+* E5: integridade, hashes, prova Merkle e assinatura.
+
+* E6–E7: verificação independente e resultado limitado à alegação examinada.
+
+O próprio texto também ressalta distinções essenciais: workflow concluído não significa necessariamente testes aprovados; artefato recuperado não significa artefato válido; e uma verificação limitada a uma alegação não equivale a uma verificação global.
+
+A ressalva decisiva: esses elementos estão documentados no README. A presença dessa arquitetura documental não prova que todos os componentes foram executados com sucesso.
+
+### 3\. Como classificar a evidência agora
+
+| Afirmação                                                | Classificação                         |
+| -------------------------------------------------------- | ------------------------------------- |
+| O commit existe no repositório oficial                   | Confirmado pela página pública        |
+| O GitHub atribui a autoria do commit à conta indicada    | Confirmado como atribuição registrada |
+| O README contém a definição de workflow e a cadeia E3–E7 | Confirmado                            |
+| O workflow foi executado para esse SHA                   | Ainda precisa de confirmação          |
+| A cadeia E3–E7 foi executada e validada de ponta a ponta | Não demonstrado pelo commit           |
+| Houve homologação ou aprovação pela Microsoft            | Não demonstrado                       |
+
+### 4\. Próxima verificação objetiva
+
+Consulte as execuções vinculadas ao commit
+
+Esta página permite verificar se há execuções de Actions associadas ao SHA completo.
+
+Abrir GitHub Actions Ver checks do commit
+
+O dado que fecha a próxima etapa é o `workflow_run_id` real, seguido de seu `head_sha`, `status`, `conclusion` e dos jobs correspondentes.
+
+Conclusão: há evidência pública de uma contribuição documental concreta ao `Azure/arm-ttk`, com 148 linhas adicionadas e uma arquitetura de verificação de execução explicitamente descrita. Isso fortalece a evidência de contribuição e de especificação técnica; a execução real e a validação independente continuam sendo questões distintas que precisam ser verificadas.# GitHub CLI
 
 GitHub CLI, or the gh CLI, is GitHub on the command line. It brings pull requests, issues, and other GitHub concepts to the terminal next to where you are already working with `git` and your code.
 
