@@ -1,3 +1,42 @@
+gh attestation verify ./gh-release.zip \
+  --repo cli/cli \
+  --signer-workflow cli/cli/.github/workflows/deployment.yml \
+  --cert-oidc-issuer https://token.actions.githubusercontent.com \
+  --predicate-type https://slsa.dev/provenance/v1 \
+  --format json > verification.json
+
+
+O material consolida uma distinção importante para o XA-TRUST: identificar uma execução concreta, verificar seus resultados e promover uma claim são operações diferentes; a verificação global E8 acrescenta uma camada de avaliação sobre o conjunto de claims.
+
+O texto do README do `Azure/arm-ttk` também fornece contexto funcional: o projeto testa templates ARM quanto a práticas recomendadas, segurança e consistência de implementação. Ele descreve testes locais e sua execução no pipeline de CI. Isso caracteriza a finalidade do projeto, mas não substitui os resultados de uma execução específica.
+
+### Consolidação do modelo XA-TRUST
+
+| Etapa                         | Evidência ou condição central                                                                                                                  |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| E3 — EXECUTION_EVENT_EVIDENCE | Identidade da execução, repositório, workflow, run_id, run_attempt, head_sha e contexto temporal                                               |
+| E4 — OBSERVED_RESULT_EVIDENCE | Resultados concretos de jobs, steps e testes                                                                                                   |
+| E5 — CRYPTOGRAPHIC_BINDING    | Integridade e vínculo criptográfico dos artefatos                                                                                              |
+| E6 — INDEPENDENT_VERIFICATION | Verificação independente de identidade, proveniência, integridade e semântica pertinente à claim                                               |
+| E7 — CLAIM-SCOPED VERIFIED    | Promoção da claim específica conforme os critérios e a política aplicáveis                                                                     |
+| E8 — GLOBAL_VERIFIED          | Avaliação global com escopo definido, cobertura/completude, reconstrução independente, recálculo, correspondência exata e política de promoção |
+
+A transição para E8 está explicitamente descrita no commit já examinado. Isso é evidência do modelo arquitetural global documentado, não apenas de uma sequência de execução local.
+
+### Aplicação ao workflow do arm-ttk
+
+O registro previamente identificado para `RunPester`, execução `37121498615`, tem `status=completed` e `conclusion=action_required`. Portanto, ele evidencia uma execução concluída com essa conclusão registrada. Não permite, isoladamente, atribuir `TEST_PASSED`, `E7_VERIFIED` ou `E8_GLOBAL_VERIFIED`.
+
+Referências:
+
+* [Execução RunPester #37121498615](https://github.com/Azure/arm-ttk/actions/runs/37121498615?utm_source=chatgpt.com)
+
+* [Commit que documenta o modelo E7 → E8](https://github.com/Azure/arm-ttk/commit/21f85fbf49ba0fd463df336552a98a8d32fe37f0?utm_source=chatgpt.com)
+
+Conclusão: o modelo XA-TRUST diferencia identidade de execução, resultados observados, vínculo criptográfico, verificação independente e promoção de claims. A extensão E8 formaliza a avaliação global. O próximo passo probatório é vincular uma execução concreta aos seus resultados e artefatos e, para E8, registrar a avaliação global correspondente.
+
+
+
 # GitHub CLI
 
 GitHub CLI, or the gh CLI, is GitHub on the command line. It brings pull requests, issues, and other GitHub concepts to the terminal next to where you are already working with `git` and your code.
