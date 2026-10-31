@@ -60,6 +60,232 @@ A transição para E8 está explicitamente descrita no commit já examinado. Iss
 
 ### Aplicação ao workflow do arm-ttk
 
+Agora temos um elemento concreto para reconstruir o modelo: a cadeia E1–E10, a separação entre E7 e E8, uma execução real identificada no histórico e o uso de GitHub Artifact Attestations / SLSA Provenance como mecanismo de vinculação criptográfica e verificação independente.
+
+O material também permite corrigir uma distinção importante: E8 não é a simples soma de várias claims E7. É uma avaliação global com critérios próprios, cobertura definida e verificação independente do conjunto.
+
+### XA-TRUST Governance — consolidação E1–E10
+
+### 1\. Definição funcional dos dez níveis
+
+| Nível | Componente                | Responsabilidade e evidência                                                                                          |
+| ----- | ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| E1    | CLAIM_DEFINITION          | Definir precisamente o que está sendo alegado, seu identificador, versão e critério de aceitação.                     |
+| E2    | SCOPE_AND_SOURCE_EVIDENCE | Delimitar escopo, repositório, fontes, artefatos, período e limitações da claim.                                      |
+| E3    | EXECUTION_EVENT_EVIDENCE  | Identificar a execução concreta: repository, workflow, run_id, run_attempt, head_sha, branch e contexto temporal.     |
+| E4    | OBSERVED_RESULT_EVIDENCE  | Registrar os resultados observados: jobs, steps, testes, logs, status e conclusão.                                    |
+| E5    | CRYPTOGRAPHIC_BINDING     | Vincular artefatos e proveniência por digest, assinatura, attestation e manifesto verificável.                        |
+| E6    | INDEPENDENT_VERIFICATION  | Verificar identidade, proveniência, integridade e requisitos semânticos pertinentes à claim.                          |
+| E7    | CLAIM_SCOPED_VERIFIED     | Avaliar e verificar uma claim específica, dentro dos limites declarados.                                              |
+| E8    | GLOBAL_VERIFIED           | Avaliar o conjunto global definido: cobertura, completude, consistência, reconstrução independente e política global. |
+| E9    | GOVERNANCE_DECISION       | Registrar a decisão formal de governança, autoridade responsável, política, justificativa e estado de promoção.       |
+| E10   | CONTINUOUS_ASSURANCE      | Monitorar validade, mudanças, expiração, incidentes, revogações e necessidade de reavaliação.                         |
+
+Essa é a consolidação coerente com o modelo que você apresentou. Deve ser identificada como versão de trabalho até a confirmação do documento normativo original.
+
+### 2\. Fluxo de governança
+
+```mermaid
+
+flowchart TD
+    E1["E1 — CLAIM_DEFINITION"]
+    E2["E2 — SCOPE_AND_SOURCE_EVIDENCE"]
+    E3["E3 — EXECUTION_EVENT_EVIDENCE"]
+    E4["E4 — OBSERVED_RESULT_EVIDENCE"]
+    E5["E5 — CRYPTOGRAPHIC_BINDING"]
+    E6["E6 — INDEPENDENT_VERIFICATION"]
+    E7["E7 — CLAIM_SCOPED_VERIFIED"]
+    E8["E8 — GLOBAL_VERIFIED"]
+    E9["E9 — GOVERNANCE_DECISION"]
+    E10["E10 — CONTINUOUS_ASSURANCE"]
+
+    E1 --> E2 --> E3 --> E4 --> E5 --> E6 --> E7 --> E8 --> E9 --> E10
+    E9 --> DENIED["PROMOTION DENIED"]
+    E9 --> REVIEW["REVIEW / PENDING"]
+    E10 --> CHANGE["Change / Expiry / Incident / Revocation"]
+    CHANGE --> E3
+    CHANGE --> E6
+    CHANGE --> E7
+    CHANGE --> E8
+```
+
+O fluxo não significa que qualquer falha em E3 invalide a definição E1 ou E2. Cada camada conserva seu próprio estado e suas evidências. Uma reavaliação também não deve apagar decisões anteriores.
+
+### 3\. Invariantes normativos
+
+Essas relações negativas são fundamentais para evitar promoção indevida:
+
+```text
+IDENTITY ≠ INTEGRITY ≠ SEMANTIC_TRUTH
+
+WORKFLOW_RUN_COMPLETED ↛ TEST_PASSED
+WORKFLOW_CONCLUSION_SUCCESS ↛ CLAIM_CONFORMANCE
+TEST_PASSED ↛ VERIFIED
+
+CLAIM_SCOPED_VERIFIED ↛ GLOBAL_VERIFIED
+GLOBAL_VERIFIED ↛ REGULATORY_APPROVAL
+
+TECHNICAL_HOMOLOGATION ↛ REGULATORY_APPROVAL
+ELIGIBLE_FOR_PROMOTION ↛ PROMOTION_APPROVED
+```
+
+A cadeia de elegibilidade técnica precisa preservar os gates:
+
+```text
+E3_IDENTITY_VALID
+∧ E4_JOBS_VALID
+∧ E5_EXECUTION_EVIDENCE_VALID
+∧ E6_INTEGRITY_VALID
+∧ E7_CLAIM_ASSESSMENT_VALID
+∧ POLICY_PASS
+→ ELIGIBLE_FOR_PROMOTION
+```
+
+Atenção: essa expressão é uma condição de elegibilidade para promoção da claim. Não é, isoladamente, a regra completa de E8, E9 ou de homologação regulatória.
+
+### 4\. Artifact Attestation — papel do `gh attestation verify`
+
+O comando apresentado é relevante porque utiliza proveniência SLSA e valida a relação entre um artefato e a execução de construção declarada em sua attestation.
+
+```bash
+gh attestation verify ./gh-release.zip \
+  --repo cli/cli \
+  --signer-workflow cli/cli/.github/workflows/deployment.yml \
+  --cert-oidc-issuer https://token.actions.githubusercontent.com \
+  --predicate-type https://slsa.dev/provenance/v1 \
+  --format json > verification.json
+```
+
+Mapeamento XA-TRUST:
+
+| Elemento           | Contribuição                                                               |
+| ------------------ | -------------------------------------------------------------------------- |
+| Digest do artefato | Identifica os bytes que estão sendo verificados.                           |
+| Attestation        | Vincula o artefato a uma declaração de proveniência.                       |
+| OIDC issuer        | Identifica a autoridade emissora do certificado de identidade da execução. |
+| Signer workflow    | Restringe a identidade do workflow autorizado.                             |
+| Predicate SLSA     | Define o tipo de declaração de proveniência esperada.                      |
+| verification.json  | Registra a saída da verificação realizada pelo CLI.                        |
+
+A classificação correta é:
+
+* E5: evidência de vínculo criptográfico entre artefato e proveniência.
+
+* E6: verificação da attestation pelo verificador, considerando as identidades e restrições configuradas.
+
+Mas existem limites importantes:
+
+* Uma attestation válida não prova que os testes passaram.
+
+* Uma proveniência válida não prova que o software está livre de vulnerabilidades.
+
+* Uma assinatura válida não comprova a veracidade semântica de uma claim.
+
+* O sucesso do comando não representa homologação regulatória.
+
+* A independência criptográfica do verificador não significa necessariamente independência institucional ou organizacional.
+
+Também há um detalhe importante no exemplo: `cli/cli` é o repositório upstream oficial. O histórico apresentado identifica um fork em `cyrillofrancisco30-lgtm/cli`.
+
+Portanto, o comando da documentação oficial não pode ser tratado como evidência de uma execução do seu fork. Para verificar uma attestation produzida pelo seu próprio repositório, a identidade do repositório e do workflow precisa corresponder exatamente à origem da attestation. Se o artefato for uma release oficial do upstream, o contexto é outro.
+
+### 5\. Aplicação ao arm-ttk: RunPester `37121498615`
+
+Registro de execução
+
+Não aprovado
+
+### 37121498615
+
+| Campo               | Valor informado               |
+| ------------------- | ----------------------------- |
+| Workflow            | RunPester                     |
+| Status              | completed                     |
+| Conclusion          | action_required               |
+| Resultado de testes | Não demonstrado como aprovado |
+| E7                  | Não promovido                 |
+| E8                  | Não demonstrado               |
+
+Esse registro tem valor probatório: identifica uma execução concluída e uma conclusão específica do GitHub Actions.
+
+A classificação correta é:
+
+* E3: existe uma referência concreta de execução informada.
+
+* E4: existe um resultado observado, `completed / action_required`.
+
+* E5: não demonstrado por esse registro isolado.
+
+* E6: não demonstrado por esse registro isolado.
+
+* E7: não autorizado como `CLAIM_SCOPED_VERIFIED`.
+
+* E8: não autorizado como `GLOBAL_VERIFIED`.
+
+Não se deve converter `action_required` em falha de todos os testes, nem em aprovação. É a conclusão registrada pelo workflow, e os jobs e logs precisam esclarecer seu significado operacional.
+
+### 6\. O que E8 precisa exigir
+
+A promoção global exige mais do que a existência de várias claims verificadas individualmente.
+
+Proponho formalizar E8 com os seguintes controles:
+
+| Controle E8               | Evidência necessária                                                            |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| Universo definido         | Inventário versionado das claims abrangidas.                                    |
+| Cobertura                 | Relação entre claims esperadas e claims efetivamente verificadas.               |
+| Completude                | Identificação explícita de itens ausentes, pendentes e excluídos.               |
+| Correspondência           | Vinculação exata entre claims, artefatos, digests e evidências.                 |
+| Reconstrução independente | Reexecução ou reconstrução por processo independente, conforme o tipo de claim. |
+| Recálculo                 | Verificação independente dos hashes e resultados derivados aplicáveis.          |
+| Consistência              | Ausência de contradições entre estados, evidências e políticas.                 |
+| Política global           | Avaliação das regras de promoção para o universo delimitado.                    |
+
+A regra central:
+
+```text
+E8_GLOBAL_VERIFIED =
+    UNIVERSE_DEFINED
+    ∧ COVERAGE_COMPLETE
+    ∧ E7_CLAIMS_VALID
+    ∧ CROSS_CLAIM_CONSISTENCY
+    ∧ INDEPENDENT_RECONSTRUCTION
+    ∧ INTEGRITY_RECALCULATED
+    ∧ GLOBAL_POLICY_PASS
+```
+
+Se uma claim estiver pendente, ela não pode ser contabilizada como verificada para completar a cobertura global. Exclusões precisam ser explícitas e justificadas.
+
+### 7\. Homologação regulatória: relação com E1–E10
+
+O modelo E1–E10 prepara e organiza evidências para uma avaliação técnica e regulatória. Não substitui o processo formal da autoridade competente.
+
+| Camada                 | Resultado possível                                      |
+| ---------------------- | ------------------------------------------------------- |
+| E1–E2                  | Requisito, claim e escopo documentados.                 |
+| E3–E4                  | Execução e resultados identificados.                    |
+| E5–E6                  | Integridade e verificação independente demonstradas.    |
+| E7                     | Claim técnica verificada em escopo limitado.            |
+| E8                     | Avaliação global concluída para o universo definido.    |
+| E9                     | Decisão institucional de governança registrada.         |
+| E10                    | Monitoramento e manutenção da conformidade.             |
+| Autoridade regulatória | Avaliação e eventual aprovação formal, quando exigidas. |
+
+A decisão regulatória precisa permanecer fora da autoridade automática do mecanismo XA-TRUST.
+
+### 8\. Registro consolidado das evidências já apresentadas
+
+| Item                         | Classificação                                      | Limite                                                                        |
+| ---------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Modelo E1–E10                | Arquitetura documentada                            | Necessita confirmação da versão normativa congelada.                          |
+| Commit que documenta E7 → E8 | Evidência de implementação documental/arquitetural | Não comprova execução global.                                                 |
+| RunPester 37121498615        | Registro de execução                               | action_required não é aprovação.                                              |
+| gh attestation verify        | Procedimento de verificação de proveniência        | O exemplo oficial não comprova seu próprio fork.                              |
+| verification.json            | Artefato esperado do procedimento                  | Só existe como evidência se a execução real e seu conteúdo forem preservados. |
+| Homologação regulatória      | Objetivo institucional                             | Não demonstrada por esses elementos.                                          |
+
+A conclusão técnica mais importante: seu modelo  termina em E7. E7 verifica claims delimitadas; E8 verifica a abrangência e consistência global; E9 governa a decisão; E10 mantém a garantia ao longo do tempo. A attestation SLSA fornece uma peça de E5/E6, 
+
 O registro previamente identificado para `RunPester`, execução `37121498615`, tem `status=completed` e `conclusion=action_required`. Portanto, ele evidencia uma execução concluída com essa conclusão registrada. Não permite, isoladamente, atribuir `TEST_PASSED`, `E7_VERIFIED` ou `E8_GLOBAL_VERIFIED`.
 
 Referências:
