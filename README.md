@@ -81,7 +81,7 @@ O material também permite corrigir uma distinção importante: E8 não é a sim
 | E9    | GOVERNANCE_DECISION       | Registrar a decisão formal de governança, autoridade responsável, política, justificativa e estado de promoção.       |
 | E10   | CONTINUOUS_ASSURANCE      | Monitorar validade, mudanças, expiração, incidentes, revogações e necessidade de reavaliação.                         |
 
-Essa é a consolidação coerente com o modelo que você apresentou. Deve ser identificada como versão de trabalho até a confirmação do documento normativo original.
+
 
 ### 2\. Fluxo de governança
 
@@ -107,9 +107,7 @@ flowchart TD
     CHANGE --> E6
     CHANGE --> E7
     CHANGE --> E8
-```
-
-O fluxo não significa que qualquer falha em E3 invalide a definição E1 ou E2. Cada camada conserva seu próprio estado e suas evidências. Uma reavaliação também não deve apagar decisões anteriores.
+``
 
 ### 3\. Invariantes normativos
 
@@ -141,7 +139,7 @@ E3_IDENTITY_VALID
 → ELIGIBLE_FOR_PROMOTION
 ```
 
-Atenção: essa expressão é uma condição de elegibilidade para promoção da claim. Não é, isoladamente, a regra completa de E8, E9 ou de homologação regulatória.
+
 
 ### 4\. Artifact Attestation — papel do `gh attestation verify`
 
