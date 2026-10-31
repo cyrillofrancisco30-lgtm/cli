@@ -1,3 +1,38 @@
+
+flowchart TD
+    A["E1–E2: Declaração e escopo da claim"] --> B["E3–E4: Identidade e resultado observado"]
+    B --> C["E5–E6: Integridade e verificação independente"]
+    C --> D["E7: Verificação limitada à claim"]
+    D --> E["E8: Avaliação de abrangência global"]
+    E --> F["E9: Decisão de governança"]
+    F --> G["E10: Assurance contínua"]
+    F --> H["PROMOTION DENIED / REVIEW"]
+    G --> I["Reavaliação por mudança, expiração ou incidente"]
+    I --> F
+
+
+IDENTITY ≠ INTEGRITY ≠ SEMANTIC_TRUTH
+
+WORKFLOW_RUN_COMPLETED ↛ TEST_PASSED
+WORKFLOW_CONCLUSION_SUCCESS ↛ CLAIM_CONFORMANCE
+TEST_PASSED ↛ VERIFIED
+
+CLAIM_SCOPED_VERIFIED ↛ GLOBAL_VERIFIED
+TECHNICAL_HOMOLOGATION ↛ REGULATORY_APPROVAL
+ELIGIBLE_FOR_PROMOTION ↛ PROMOTION_APPROVED
+
+
+E3_IDENTITY_VALID
+∧ E4_JOBS_VALID
+∧ E5_EXECUTION_EVIDENCE_VALID
+∧ E6_INTEGRITY_VALID
+∧ E7_CLAIM_ASSESSMENT_VALID
+∧ POLICY_PASS
+→ ELIGIBLE_FOR_PROMOTION
+
+
+
+
 gh attestation verify ./gh-release.zip \
   --repo cli/cli \
   --signer-workflow cli/cli/.github/workflows/deployment.yml \
