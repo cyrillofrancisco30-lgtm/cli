@@ -1,3 +1,207 @@
+CLAIM_SCOPED_VERIFIED Avaliação de uma claim específica
+GLOBAL_VERIFIED Avaliação do universo global delimitado
+GOVERNANCE_DECISION Decisão por autoridade de governança
+CONTINUOUS_ASSURANCE Mudanças, expiração, incidentes e revogações
+
+
+
+E8_GLOBAL_VERIFIED =
+    UNIVERSE_DEFINED
+    ∧ COVERAGE_COMPLETE
+    ∧ E7_CLAIMS_VALID
+    ∧ CROSS_CLAIM_CONSISTENCY
+    ∧ INDEPENDENT_RECONSTRUCTION
+    ∧ INTEGRITY_RECALCULATED
+    ∧ GLOBAL_POLICY_PASS
+
+GLOBAL_SCOPE = {
+    repository: "cyrillofrancisco30-lgtm/arm-ttk",
+    claims: [
+        "ARM_TTK_WORKFLOW_EXECUTION",
+        "ARM_TTK_TEST_RESULT",
+        "ARM_TTK_ARTIFACT_INTEGRITY"
+    ],
+    reference_commit: "<commit_sha>",
+    policy_version: "<policy_version>"
+}
+
+
+
+IDENTITY ≠ INTEGRITY ≠ SEMANTIC_TRUTH
+
+WORKFLOW_RUN_COMPLETED ↛ TEST_PASSED
+WORKFLOW_CONCLUSION_SUCCESS ↛ CLAIM_CONFORMANCE
+TEST_PASSED ↛ VERIFIED
+
+CLAIM_SCOPED_VERIFIED ↛ GLOBAL_VERIFIED
+GLOBAL_VERIFIED ↛ REGULATORY_APPROVAL
+
+TECHNICAL_HOMOLOGATION ↛ REGULATORY_APPROVAL
+ELIGIBLE_FOR_PROMOTION ↛ PROMOTION_APPROVED
+
+
+E3_IDENTITY_VALID
+∧ E4_JOBS_VALID
+∧ E5_EXECUTION_EVIDENCE_VALID
+∧ E6_INTEGRITY_VALID
+∧ E7_CLAIM_ASSESSMENT_VALID
+∧ POLICY_PASS
+→ ELIGIBLE_FOR_PROMOTION
+
+
+flowchart TD
+    A["E1–E2: Claim e escopo"] --> B["E3–E4: Identidade e resultados"]
+    B --> C["E5–E6: Integridade e verificação independente"]
+    C --> D["E7: Verificação da claim"]
+    D --> E["E8: Avaliação global do universo delimitado"]
+    E --> F["E9: Decisão de governança"]
+    F -->|Aprovada| G["Estado de promoção autorizado"]
+    F -->|Não aprovada| H["PROMOTION DENIED / REVIEW"]
+    G --> I["E10: Assurance contínua"]
+    H --> I
+    I --> J["Mudança, expiração, incidente ou revogação"]
+    J --> B
+    J --> C
+    J --> D
+    J --> E
+
+#!/usr/bin/env python3
+"""
+JCS Evidence Producer for XA-TRUST / ECM (RFC 8785 Conformance)
+Generates formal evidence artifacts for independent verification.
+"""
+
+import json
+import sys
+import os
+import hashlib
+import base64
+from datetime import datetime
+import subprocess
+
+try:
+    import rfc8785
+except ImportError:
+    print("[ERROR] Required library 'rfc8785' not found. Install via pip install rfc8785", file=sys.stderr)
+    sys.exit(1)
+
+# Configurações de Versão e Baseline
+EXECUTOR_VERSION = "1.0.0"
+VECTORS_PATH = "tests/jcs/vectors.json"
+
+def get_sha256(data):
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    return hashlib.sha256(data).hexdigest()
+
+def get_git_head():
+    try:
+        return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('utf-8').strip()
+    except Exception:
+        return "UNKNOWN_COMMIT"
+
+def produce_evidence():
+    if not os.path.exists(VECTORS_PATH):
+        print(f"[ERROR] Vectors file not found at: {VECTORS_PATH}", file=sys.stderr)
+        sys.exit(1)
+
+    with open(VECTORS_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    suite_name = data.get("suite", "Unknown Suite")
+    vectors = data.get("vectors", [])
+    
+    print(f"=== Producing Evidence for {suite_name} ===")
+    
+    # 1. Gerar execution_metadata.json
+    metadata = {
+        "repository": "azhpc-extensions",
+        "head_sha": get_git_head(),
+        "workflow_run_id": os.environ.get("GITHUB_RUN_ID", "LOCAL_EXECUTION"),
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "executor_version": EXECUTOR_VERSION,
+        "environment": {
+            "python_version": sys.version.split()[0],
+            "rfc8785_version": "installed"
+        }
+    }
+    
+    # 2. Gerar artifact_hashes.json
+    # Mapeia os arquivos que compõem a base de confiança da execução
+    critical_files = [VECTORS_PATH]
+    artifacts = []
+    for path in critical_files:
+        with open(path, "rb") as f:
+            content = f.read()
+            artifacts.append({
+                "path": path,
+                "sha256": hashlib.sha256(content).hexdigest(),
+                "size_bytes": len(content)
+            })
+    
+    # 3. Gerar test_execution.json (A evidência central)
+    execution_results = []
+    all_passed = True
+
+    for vec in vectors:
+        vid = vec.get("id")
+        raw_input = vec.get("input")
+        expected_canonical = vec.get("expected_canonical")
+
+        try:
+            # Produção de bytes JCS
+            actual_bytes = rfc8785.dumps(raw_input)
+            actual_bytes_b64 = base64.b64encode(actual_bytes).decode('utf-8')
+            
+            # Cálculos de Hash para a evidência
+            # O input é serializado para hash para garantir determinismo da entrada
+            input_json_bytes = json.dumps(raw_input, sort_keys=True).encode('utf-8')
+            
+            res_status = "PASS" if actual_bytes == expected_canonical.encode('utf-8') else "FAIL"
+            if res_status == "FAIL":
+                all_passed = False
+
+            execution_results.append({
+                "vector_id": vid,
+                "input_sha256": get_sha256(input_json_bytes),
+                "expected_sha256": get_sha256(expected_canonical),
+                "actual_sha256": get_sha256(actual_bytes),
+                "actual_bytes_base64": actual_bytes_b64,
+                "result": res_status
+            })
+            print(f"[{res_status}] {vid}")
+
+        except Exception as e:
+            print(f"[ERROR] {vid}: {e}")
+            execution_results.append({
+                "vector_id": vid,
+                "input_sha256": "ERROR",
+                "expected_sha256": "ERROR",
+                "actual_sha256": "ERROR",
+                "actual_bytes_base64": "",
+                "result": "ERROR"
+            })
+            all_passed = False
+
+    # Persistência dos artefatos no disco
+    with open("execution_metadata.json", "w") as f:
+        json.dump(metadata, f, indent=2)
+    
+    with open("artifact_hashes.json", "w") as f:
+        json.dump({"artifacts": artifacts}, f, indent=2)
+        
+    with open("test_execution.json", "w") as f:
+        json.dump({"suite": suite_name, "results": execution_results}, f, indent=2)
+
+    print("\n=== Evidence Production Complete ===")
+    print("Artifacts generated: execution_metadata.json, artifact_hashes.json, test_execution.json")
+    
+    return all_passed
+
+if __name__ == "__main__":
+    success = produce_evidence()
+    sys.exit(0 if success else 1)
+
 
 flowchart TD
     A["E1–E2: Declaração e escopo da claim"] --> B["E3–E4: Identidade e resultado observado"]
